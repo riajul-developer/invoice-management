@@ -10,14 +10,12 @@ class AuthController {
         success: true,
         message: 'User registered successfully',
         data: {
-          user: {
-            id: user.id,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            role: user.role,
-            account_number: user.account_number,
-          }
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+          account_number: user.account_number,
         }
       });
     } catch (error) {

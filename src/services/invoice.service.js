@@ -7,7 +7,7 @@ const authService = new AuthService();
 class InvoiceService {
   generateInvoiceNumber() {
     const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 5);
+    const random = Math.random().toString(36).substring(2, 5);
     return `INV-${timestamp}-${random}`.toUpperCase();
   }
 
@@ -61,9 +61,10 @@ class InvoiceService {
   async bulkCreateInvoices(invoices) {
     const results = {
       created: 0,
-      errors: [],
       users_created: 0,
       skipped: 0,
+      new_users: [],
+      errors: [],
     };
 
     for (const invoiceData of invoices) {
@@ -85,7 +86,17 @@ class InvoiceService {
             last_name: invoiceData.last_name,
             account_number: invoiceData.account_number,
           });
+
           results.users_created++;
+          
+          results.new_users.push({
+            id: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            account_number: user.account_number,
+          });
+
         }
 
         const invoiceNumber = invoiceData.invoice_number || this.generateInvoiceNumber();
