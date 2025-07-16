@@ -8,14 +8,14 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  if (err.code === 'P2002') { // Prisma unique constraint error
+  if (err.code === 'P2002') { 
     return res.status(409).json({
       error: 'Duplicate entry',
       details: 'A record with this value already exists',
     });
   }
 
-  if (err.code === 'P2025') { // Prisma record not found
+  if (err.code === 'P2025') { 
     return res.status(404).json({
       error: 'Record not found',
       details: 'The requested resource does not exist',

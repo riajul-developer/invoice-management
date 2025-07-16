@@ -8,7 +8,6 @@ const { createInvoiceSchema, bulkInvoiceSchema, getInvoicesSchema } = require('.
 const router = express.Router();
 const invoiceController = new InvoiceController();
 
-// Configure multer for file uploads
 const upload = multer({
   dest: 'uploads/',
   fileFilter: (req, file, cb) => {

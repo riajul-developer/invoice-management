@@ -2,23 +2,23 @@ const { z } = require('zod');
 
 const validateBody = (schema) => {
   return (req, res, next) => {
-    try {
-      schema.parse(req.body);
-      next();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          error: 'Validation failed',
-          details: error.errors.map(err => ({
-            field: err.path.join('.'),
-            message: err.message,
-          })),
-        });
-      }
-      next(error);
+    const result = schema.safeParse(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: result.error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message,
+        })),
+      });
     }
+    
+    req.body = result.data;
+    next();
   };
 };
+
 
 const validateQuery = (schema) => {
   return (req, res, next) => {

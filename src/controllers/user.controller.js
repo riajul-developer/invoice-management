@@ -18,8 +18,12 @@ class UserController {
   async getAllUsers(req, res, next) {
     try {
       const { page, limit, search } = req.query;
-      const result = await userService.getAllUsers(page, limit, search);
-      res.json(result);
+      const data = await userService.getAllUsers(page, limit, search);
+      
+      res.status(200).json({
+        message: 'Users retrieved successfully',
+        data,
+      });
     } catch (error) {
       next(error);
     }
