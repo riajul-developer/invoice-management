@@ -6,8 +6,10 @@ const validateBody = (schema) => {
     
     if (!result.success) {
       return res.status(400).json({
-        error: 'Validation failed',
-        details: result.error.errors.map(err => ({
+        success: false,
+        message: 'Validation failed',
+        data: null,
+        errors: result.error.errors.map(err => ({
           field: err.path.join('.'),
           message: err.message,
         })),
@@ -28,8 +30,10 @@ const validateQuery = (schema) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
-          error: 'Query validation failed',
-          details: error.errors.map(err => ({
+          success: false,
+          message: 'Query validation failed',
+          data: null,
+          errors: error.errors.map(err => ({
             field: err.path.join('.'),
             message: err.message,
           })),
