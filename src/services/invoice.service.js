@@ -134,18 +134,119 @@ class InvoiceService {
     return results;
   }
 
-  async getAllInvoices(page = 1, limit = 10, status, user_id) {
-    const skip = (page - 1) * limit;
+  static ALLOWED_STATUSES = ['PENDING', 'PAID', 'CANCELLED'];
 
+  async getAllInvoices(page = 1, limit = 10, search = '', status, user_id) {
+    const baseUrl = process.env.BASE_URL;
+    
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
+    
     const where = {};
-    if (status) where.status = status;
-    if (user_id) where.user_id = user_id;
+    
+    if (user_id) {
+      where.user_id = user_id;
+    }
+    
+    if (status && InvoiceService.ALLOWED_STATUSES.includes(status.toUpperCase())) {
+      where.status = status.toUpperCase();
+    }
+    
+    if (search) {
+      const searchTerms = search.trim().split(/\s+/);
+      
+      const searchConditions = [
+        {
+          invoice_number: {
+            contains: search
+          }
+        },
+        {
+          description: {
+            contains: search
+          }
+        },
+        ...(isNaN(search) ? [] : [{
+          amount: {
+            equals: parseFloat(search)
+          }
+        }]),
+        {
+          user: {
+            first_name: {
+              contains: search
+            }
+          }
+        },
+        {
+          user: {
+            last_name: {
+              contains: search
+            }
+          }
+        },
+        {
+          user: {
+            email: {
+              contains: search
+            }
+          }
+        },
+        {
+          user: {
+            account_number: {
+              contains: search
+            }
+          }
+        }
+      ];
+
+      if (searchTerms.length === 2) {
+        searchConditions.push(
+          {
+            user: {
+              AND: [
+                {
+                  first_name: {
+                    contains: searchTerms[0]
+                  }
+                },
+                {
+                  last_name: {
+                    contains: searchTerms[1]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            user: {
+              AND: [
+                {
+                  first_name: {
+                    contains: searchTerms[1]
+                  }
+                },
+                {
+                  last_name: {
+                    contains: searchTerms[0]
+                  }
+                }
+              ]
+            }
+          }
+        );
+      }
+
+      where.OR = searchConditions;
+    }
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
         where,
-        skip,
-        take: limit,
+        skip: skip,
+        take: limitNum,
         include: {
           user: {
             select: {
@@ -162,19 +263,46 @@ class InvoiceService {
       prisma.invoice.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    const params = {
+      page: String(pageNum),
+      limit: String(limitNum),
+      ...(search ? { search } : {}),
+      ...(status && InvoiceService.ALLOWED_STATUSES.includes(status.toUpperCase()) ? { status: status.toUpperCase() } : {}),
+      ...(user_id ? { user_id } : {})
+    };
+
+    const queryParams = new URLSearchParams(params);
+
+    const links = {
+      self: `${baseUrl}/api/invoices?${queryParams.toString()}`,
+      next: hasNextPage 
+        ? `${baseUrl}/api/invoices?${new URLSearchParams({ ...params, page: String(pageNum + 1) }).toString()}` 
+        : null,
+      prev: hasPrevPage 
+        ? `${baseUrl}/api/invoices?${new URLSearchParams({ ...params, page: String(pageNum - 1) }).toString()}` 
+        : null
+    };
+
     return {
-      invoices,
-      pagination: {
-        page,
-        limit,
+      meta: {
         total,
-        pages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        links
       },
+      invoices
     };
   }
 
-  async getUserInvoices(user_id, page = 1, limit = 10) {
-    return this.getAllInvoices(page, limit, undefined, user_id);
+  async getUserInvoices(user_id, page = 1, limit = 10, search = '', status) {
+    return this.getAllInvoices(page, limit, search, status, user_id);
   }
 
   async getInvoiceById(id, user = null) {
@@ -252,7 +380,6 @@ class InvoiceService {
   async deleteInvoice(id, user = null) {
     await this.getInvoiceById(id, user);
 
-    // Only admin can delete invoices
     if (user && user.role !== 'ADMIN') {
       throw new Error('Only admin can delete invoices');
     }

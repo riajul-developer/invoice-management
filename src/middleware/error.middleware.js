@@ -7,8 +7,6 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({
       success: false,
       message: err.message,
-      data: null,
-      errors: null
     });
   }
 
@@ -16,8 +14,6 @@ const errorHandler = (err, req, res, next) => {
     return res.status(409).json({
       success: false,
       message: 'A record with this value already exists',
-      data: null,
-      errors: null
     });
   }
 
@@ -25,16 +21,12 @@ const errorHandler = (err, req, res, next) => {
     return res.status(404).json({
       success: false,
       message: 'The requested resource does not exist',
-      data: null,
-      errors: null
     });
   }
 
   res.status(500).json({
     success: false,
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-    data: null,
-    errors: null
   });
 };
 

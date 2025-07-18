@@ -46,31 +46,89 @@ class UserService {
     return user;
   }
 
-  async getAllUsers(page = 1, limit = 10, search) {
-    const skip = (page - 1) * limit;
-
-    const where = search
-      ? {
-          OR: [
-            { first_name: { contains: search, mode: 'insensitive' } },
-            { last_name: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-            { account_number: { contains: search, mode: 'insensitive' } },
-          ],
+  async getAllUsers(page = 1, limit = 10, search = '') {
+    const baseUrl = process.env.BASE_URL;
+    
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
+    
+    const where = {
+      role: 'CUSTOMER' 
+    };
+    
+    if (search) {
+      const searchTerms = search.trim().split(/\s+/);
+      
+      const searchConditions = [
+        {
+          first_name: {
+            contains: search
+          }
+        },
+        {
+          last_name: {
+            contains: search
+          }
+        },
+        {
+          email: {
+            contains: search
+          }
+        },
+        {
+          account_number: {
+            contains: search
+          }
         }
-      : {};
+      ];
+
+      if (searchTerms.length === 2) {
+        searchConditions.push(
+          {
+            AND: [
+              {
+                first_name: {
+                  contains: searchTerms[0]
+                }
+              },
+              {
+                last_name: {
+                  contains: searchTerms[1]
+                }
+              }
+            ]
+          },
+          {
+            AND: [
+              {
+                first_name: {
+                  contains: searchTerms[1]
+                }
+              },
+              {
+                last_name: {
+                  contains: searchTerms[0]
+                }
+              }
+            ]
+          }
+        );
+      }
+
+      where.OR = searchConditions;
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        skip,
-        take: limit,
+        skip: skip,
+        take: limitNum,
         select: {
           id: true,
           email: true,
           first_name: true,
           last_name: true,
-          role: true,
           account_number: true,
           created_at: true,
           _count: {
@@ -82,14 +140,39 @@ class UserService {
       prisma.user.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    const params = {
+      page: String(pageNum),
+      limit: String(limitNum),
+      ...(search ? { search } : {})
+    };
+
+    const queryParams = new URLSearchParams(params);
+
+    const links = {
+      self: `${baseUrl}/api/users?${queryParams.toString()}`,
+      next: hasNextPage 
+        ? `${baseUrl}/api/users?${new URLSearchParams({ ...params, page: String(pageNum + 1) }).toString()}` 
+        : null,
+      prev: hasPrevPage 
+        ? `${baseUrl}/api/users?${new URLSearchParams({ ...params, page: String(pageNum - 1) }).toString()}` 
+        : null
+    };
+
     return {
-      users,
-      pagination: {
-        page,
-        limit,
+      meta: {
         total,
-        pages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        links
       },
+      users
     };
   }
 

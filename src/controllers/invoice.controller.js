@@ -91,7 +91,7 @@ class InvoiceController {
   async getAllInvoices(req, res, next) {
     try {
       
-      const { page, limit, status, user_id } = req.query;
+      const { page, limit, search, status } = req.query;
       const user = req.user;
       
       let result;
@@ -99,14 +99,16 @@ class InvoiceController {
         result = await invoiceService.getAllInvoices(
           page,
           limit,
-          status,
-          user_id
+          search,
+          status
         );
       } else {
         result = await invoiceService.getUserInvoices(
           user.id,
           page,
-          limit
+          limit,  
+          search,
+          status
         );
       }
       

@@ -1,3 +1,4 @@
+const { success } = require('zod/v4');
 const UserService = require('../services/user.service');
 
 const userService = new UserService();
@@ -7,6 +8,7 @@ class UserController {
     try {
       const data = await userService.createUser(req.body);
       res.status(201).json({
+        success: true,
         message: 'User created successfully',
         data,
       });
@@ -21,6 +23,7 @@ class UserController {
       const data = await userService.getAllUsers(page, limit, search);
       
       res.status(200).json({
+        success: true,
         message: 'Users retrieved successfully',
         data,
       });

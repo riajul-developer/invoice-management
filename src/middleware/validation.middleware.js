@@ -8,7 +8,6 @@ const validateBody = (schema) => {
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        data: null,
         errors: result.error.errors.map(err => ({
           field: err.path.join('.'),
           message: err.message,
@@ -32,7 +31,6 @@ const validateQuery = (schema) => {
         return res.status(400).json({
           success: false,
           message: 'Query validation failed',
-          data: null,
           errors: error.errors.map(err => ({
             field: err.path.join('.'),
             message: err.message,
